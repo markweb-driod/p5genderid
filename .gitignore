@@ -1,0 +1,11 @@
+node_modules/
+frontend/dist/
+backend/.venv/
+__pycache__/
+*.pyc
+.env
+.env.production
+backend/instance/
+backend/uploads/
+training/datasets/
+training/checkpoints/
