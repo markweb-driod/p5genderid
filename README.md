@@ -16,7 +16,17 @@ The labels produced by this project are dataset-defined appearance classificatio
 - Separate training/evaluation scripts with held-out test evaluation
 - SQLite development database and MySQL-ready SQLAlchemy configuration
 
-## Run the frontend
+## Quick Start (1-Click Automated Startup)
+
+To run the entire system on any local machine (handles dependencies, virtual environment, database, and launches both frontend & backend):
+
+* **Windows**: Double-click `start_all.bat` (or run `.\start_all.ps1` in PowerShell).
+* **Linux / macOS**: Run `./start_all.sh`.
+* **To Stop**: Run `stop_all.bat` (or `./stop_all.sh`).
+
+For transfer instructions and step-by-step guidance, see [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
+
+## Run the frontend manually
 
 ```powershell
 npm install

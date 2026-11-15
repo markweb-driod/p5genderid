@@ -61,32 +61,33 @@ class InferenceService:
                 return False
         return True
     def predict(self, face, raw):
-        if current_app.config.get("INFERENCE_BACKEND")=="opencv_caffe":
-            try:
-                import cv2
-                if not self.load_model(): raise RuntimeError("OpenCV Caffe gender model load failed")
-                bgr=cv2.cvtColor(np.asarray(face,dtype=np.uint8),cv2.COLOR_RGB2BGR)
-                blob=cv2.dnn.blobFromImage(bgr,1.0,(227,227),(78.4263377603,87.7689143744,114.895847746),swapRB=False)
-                self.model.setInput(blob); scores=self.model.forward()[0]; total=float(scores.sum()) or 1.0
-                male=float(scores[0]/total*100); female=float(scores[1]/total*100); label="Male" if male>=female else "Female"
-                return label,max(male,female),male,female,"production"
-            except Exception as exc:
-                raise ImageError("INFERENCE_FAILED","The trained OpenCV gender model could not complete inference.") from exc
-        model_path=Path(current_app.config["MODEL_PATH"])
-        if model_path.exists():
-            try:
-                import tensorflow as tf
-                if not self.load_model(): raise RuntimeError("Model load failed")
-                arr=np.asarray(face,dtype=np.float32); arr=tf.keras.applications.mobilenet_v2.preprocess_input(arr); score=float(self.model.predict(arr[None,...],verbose=0).reshape(-1)[0])
-                class_names=["Female","Male"]
-                metadata_path=Path(current_app.config["MODEL_METADATA_PATH"])
-                if metadata_path.is_file():
-                    class_names=json.loads(metadata_path.read_text(encoding="utf-8")).get("class_names",class_names)
-                second=str(class_names[1]).lower() if len(class_names)>1 else "male"
-                male=(score if second=="male" else 1-score)*100; female=100-male
-                label="Female" if female>=50 else "Male"; return label,max(male,female),male,female,"production"
-            except Exception as exc: raise ImageError("INFERENCE_FAILED","The model could not complete inference.") from exc
-        if not current_app.config["MOCK_MODE"]: raise ImageError("MODEL_UNAVAILABLE","No trained model is deployed. Contact the administrator.")
+        if not current_app.config.get("MOCK_MODE"):
+            if current_app.config.get("INFERENCE_BACKEND")=="opencv_caffe":
+                try:
+                    import cv2
+                    if not self.load_model(): raise RuntimeError("OpenCV Caffe gender model load failed")
+                    bgr=cv2.cvtColor(np.asarray(face,dtype=np.uint8),cv2.COLOR_RGB2BGR)
+                    blob=cv2.dnn.blobFromImage(bgr,1.0,(227,227),(78.4263377603,87.7689143744,114.895847746),swapRB=False)
+                    self.model.setInput(blob); scores=self.model.forward()[0]; total=float(scores.sum()) or 1.0
+                    male=float(scores[0]/total*100); female=float(scores[1]/total*100); label="Male" if male>=female else "Female"
+                    return label,max(male,female),male,female,"production"
+                except Exception as exc:
+                    raise ImageError("INFERENCE_FAILED","The trained OpenCV gender model could not complete inference.") from exc
+            model_path=Path(current_app.config["MODEL_PATH"])
+            if model_path.exists():
+                try:
+                    import tensorflow as tf
+                    if not self.load_model(): raise RuntimeError("Model load failed")
+                    arr=np.asarray(face,dtype=np.float32); arr=tf.keras.applications.mobilenet_v2.preprocess_input(arr); score=float(self.model.predict(arr[None,...],verbose=0).reshape(-1)[0])
+                    class_names=["Female","Male"]
+                    metadata_path=Path(current_app.config["MODEL_METADATA_PATH"])
+                    if metadata_path.is_file():
+                        class_names=json.loads(metadata_path.read_text(encoding="utf-8")).get("class_names",class_names)
+                    second=str(class_names[1]).lower() if len(class_names)>1 else "male"
+                    male=(score if second=="male" else 1-score)*100; female=100-male
+                    label="Female" if female>=50 else "Male"; return label,max(male,female),male,female,"production"
+                except Exception as exc: raise ImageError("INFERENCE_FAILED","The model could not complete inference.") from exc
+            raise ImageError("MODEL_UNAVAILABLE","No trained model is deployed. Contact the administrator.")
         # Deterministic mock for UI/development only. It is labelled MOCK everywhere and is not an ML claim.
         digest=hashlib.sha256(raw).digest(); female=55+(digest[0]/255)*40; female=female if digest[1]%2 else 100-female; male=100-female
         label="Female" if female>=50 else "Male"; return label,max(male,female),male,female,"mock"

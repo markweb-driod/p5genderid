@@ -18,22 +18,48 @@ def create_app(test_config=None):
     base = Path(__file__).resolve().parents[1]
     default_database = "sqlite:///" + (base / "instance" / "faceclass.db").as_posix()
     load_dotenv(base / ".env")
+
+    def resolve_path(val, default_rel):
+        if not val or not str(val).strip():
+            return str(base / default_rel)
+        p = Path(str(val).strip())
+        if not p.is_absolute():
+            return str(base / p)
+        if not p.exists() and (base / default_rel).exists():
+            return str(base / default_rel)
+        return str(p)
+
+    raw_db = os.getenv("DATABASE_URL")
+    if not raw_db or not raw_db.strip():
+        db_uri = default_database
+    elif raw_db.startswith("sqlite:///"):
+        sqlite_file = raw_db[10:].strip()
+        sqlite_path = Path(sqlite_file)
+        if not sqlite_path.is_absolute():
+            db_uri = "sqlite:///" + (base / sqlite_file).as_posix()
+        elif not sqlite_path.exists() and not sqlite_path.parent.exists():
+            db_uri = default_database
+        else:
+            db_uri = raw_db
+    else:
+        db_uri = raw_db
+
     app = Flask(__name__, instance_relative_config=True)
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", "development-only-change-me-32-bytes"),
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", "development-jwt-change-me-32-bytes"),
-        SQLALCHEMY_DATABASE_URI=os.getenv("DATABASE_URL", default_database),
+        SQLALCHEMY_DATABASE_URI=db_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAX_CONTENT_LENGTH=int(os.getenv("MAX_UPLOAD_MB", "10")) * 1024 * 1024,
         JWT_ACCESS_TOKEN_EXPIRES=int(os.getenv("JWT_ACCESS_TOKEN_MINUTES", "30")) * 60,
         RATELIMIT_STORAGE_URI=os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
-        MOCK_MODE=os.getenv("MOCK_MODE", "true").lower() == "true",
+        MOCK_MODE=os.getenv("MOCK_MODE", "false").lower() == "true",
         RETAIN_IMAGES=os.getenv("RETAIN_IMAGES", "false").lower() == "true",
-        MODEL_PATH=os.getenv("MODEL_PATH", str(base / "ml" / "models" / "model.keras")),
-        MODEL_METADATA_PATH=os.getenv("MODEL_METADATA_PATH", str(base / "ml" / "models" / "metadata.json")),
+        MODEL_PATH=resolve_path(os.getenv("MODEL_PATH"), Path("ml") / "models" / "model.keras"),
+        MODEL_METADATA_PATH=resolve_path(os.getenv("MODEL_METADATA_PATH"), Path("ml") / "models" / "metadata.json"),
         INFERENCE_BACKEND=os.getenv("INFERENCE_BACKEND", "opencv_caffe"),
-        GENDER_MODEL_PATH=os.getenv("GENDER_MODEL_PATH", str(base / "ml" / "models" / "gender_net.caffemodel")),
-        GENDER_PROTO_PATH=os.getenv("GENDER_PROTO_PATH", str(base / "ml" / "models" / "gender_deploy.prototxt")),
+        GENDER_MODEL_PATH=resolve_path(os.getenv("GENDER_MODEL_PATH"), Path("ml") / "models" / "gender_net.caffemodel"),
+        GENDER_PROTO_PATH=resolve_path(os.getenv("GENDER_PROTO_PATH"), Path("ml") / "models" / "gender_deploy.prototxt"),
         AUTO_CREATE_SCHEMA=os.getenv("AUTO_CREATE_SCHEMA", "true").lower() == "true",
     )
     if test_config: app.config.update(test_config)
