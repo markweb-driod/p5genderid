@@ -60,3 +60,19 @@ def ensure_model_record():
             pass
     if current_app.config["MOCK_MODE"] and not ModelVersion.query.first():
         db.session.add(ModelVersion(name="GenderCNN",version="Development Mock",architecture="MobileNetV2 + custom classification head",status="mock")); db.session.commit()
+
+# Public demo accounts shown on the login page. Passwords are reset on every start so the demo always works.
+DEMO_ACCOUNTS=[
+    {"name":"Demo User","email":"demo@example.com","password":"DemoUser2026!","role":"user"},
+    {"name":"Demo Admin","email":"admin@example.com","password":"DemoAdmin2026!","role":"admin"},
+]
+DEMO_EMAILS={a["email"] for a in DEMO_ACCOUNTS}
+
+def ensure_demo_users():
+    for account in DEMO_ACCOUNTS:
+        user=User.query.filter_by(email=account["email"]).first()
+        if not user:
+            user=User(name=account["name"],email=account["email"],role=account["role"]); db.session.add(user)
+        user.role=account["role"]; user.status="active"
+        if not user.password_hash or not user.check_password(account["password"]): user.set_password(account["password"])
+    db.session.commit()

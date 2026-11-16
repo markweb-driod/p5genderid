@@ -1,0 +1,10 @@
+backend/
+training/
+deploy/
+node_modules/
+dist/
+*.bat
+*.ps1
+*.sh
+docker-compose.yml
+frontend.Dockerfile

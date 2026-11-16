@@ -1,0 +1,12 @@
+.venv/
+instance/
+uploads/
+migrations/
+__pycache__/
+*.pyc
+.env
+Dockerfile
+entrypoint.sh
+run.py
+requirements-ml.txt
+.env.local

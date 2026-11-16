@@ -9,3 +9,5 @@ backend/instance/
 backend/uploads/
 training/datasets/
 training/checkpoints/
+
+.vercel

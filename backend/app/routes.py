@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, request
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from sqlalchemy import func
 from . import db, limiter
-from .models import User, Prediction, ModelVersion, ActivityLog
+from .models import User, Prediction, ModelVersion, ActivityLog, DEMO_EMAILS
 from .services import decode_image, detect_face, inference, ImageError
 import time
 
@@ -61,6 +61,7 @@ def profile(): return jsonify(user=current_user().json())
 def update_profile():
     user=current_user(); data=request.get_json(silent=True) or {}; name=str(data.get("name","")).strip(); email=str(data.get("email","")).strip().lower()
     if len(name)<2 or "@" not in email: return jsonify(message="Provide a valid name and email."),400
+    if user.email in DEMO_EMAILS and email!=user.email: return jsonify(message="The email of a demo account cannot be changed."),403
     conflict=User.query.filter(User.email==email,User.id!=user.id).first()
     if conflict: return jsonify(message="That email is already in use."),409
     user.name=name; user.email=email; db.session.commit(); return jsonify(user=user.json())

@@ -42,14 +42,22 @@ def create_app(test_config=None):
         else:
             db_uri = raw_db
     else:
-        db_uri = raw_db
+        db_uri = raw_db.strip()
+        # Hosted Postgres (Neon, Vercel) hands out postgres:// URLs; SQLAlchemy needs the psycopg driver named.
+        for prefix in ("postgres://", "postgresql://"):
+            if db_uri.startswith(prefix):
+                db_uri = "postgresql+psycopg://" + db_uri[len(prefix):]
+                break
 
-    app = Flask(__name__, instance_relative_config=True)
+    # Serverless hosts (Vercel) only allow writes under /tmp.
+    instance_path = "/tmp/faceclass-instance" if os.getenv("VERCEL") else None
+    app = Flask(__name__, instance_relative_config=True, instance_path=instance_path)
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", "development-only-change-me-32-bytes"),
         JWT_SECRET_KEY=os.getenv("JWT_SECRET_KEY", "development-jwt-change-me-32-bytes"),
         SQLALCHEMY_DATABASE_URI=db_uri,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        SQLALCHEMY_ENGINE_OPTIONS={"pool_pre_ping": True, "pool_recycle": 280},
         MAX_CONTENT_LENGTH=int(os.getenv("MAX_UPLOAD_MB", "10")) * 1024 * 1024,
         JWT_ACCESS_TOKEN_EXPIRES=int(os.getenv("JWT_ACCESS_TOKEN_MINUTES", "30")) * 60,
         RATELIMIT_STORAGE_URI=os.getenv("RATELIMIT_STORAGE_URI", "memory://"),
@@ -61,6 +69,7 @@ def create_app(test_config=None):
         GENDER_MODEL_PATH=resolve_path(os.getenv("GENDER_MODEL_PATH"), Path("ml") / "models" / "gender_net.caffemodel"),
         GENDER_PROTO_PATH=resolve_path(os.getenv("GENDER_PROTO_PATH"), Path("ml") / "models" / "gender_deploy.prototxt"),
         AUTO_CREATE_SCHEMA=os.getenv("AUTO_CREATE_SCHEMA", "true").lower() == "true",
+        DEMO_ACCOUNTS=os.getenv("DEMO_ACCOUNTS", "true").lower() == "true",
     )
     if test_config: app.config.update(test_config)
     os.makedirs(app.instance_path, exist_ok=True)
@@ -87,4 +96,6 @@ def create_app(test_config=None):
         if app.config["AUTO_CREATE_SCHEMA"]:
             db.create_all()
             models.ensure_model_record()
+        if app.config["DEMO_ACCOUNTS"]:
+            models.ensure_demo_users()
     return app
