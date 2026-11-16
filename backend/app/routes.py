@@ -110,7 +110,7 @@ def analytics():
 
 @api.get("/model")
 def model_info():
-    m=ModelVersion.query.order_by(ModelVersion.id.desc()).first(); return jsonify(name=m.name,version=m.version,architecture=m.architecture,input=f"{m.input_width} × {m.input_height} RGB",framework="TensorFlow / Keras",status=m.status,metrics={"accuracy":m.accuracy,"precision":m.precision_score,"recall":m.recall_score,"f1":m.f1_score,"test_sample_size":m.test_sample_size})
+    m=ModelVersion.query.order_by(ModelVersion.id.desc()).first(); return jsonify(name=m.name,version=m.version,architecture=m.architecture,input=f"{m.input_width} × {m.input_height} RGB",framework="OpenCV DNN (Caffe)" if "Caffe" in (m.version or "") else "TensorFlow / Keras",status=m.status,metrics={"accuracy":m.accuracy,"precision":m.precision_score,"recall":m.recall_score,"f1":m.f1_score,"test_sample_size":m.test_sample_size})
 
 @api.get("/admin/overview")
 @admin_required

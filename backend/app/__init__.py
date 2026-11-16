@@ -68,6 +68,9 @@ def create_app(test_config=None):
         INFERENCE_BACKEND=os.getenv("INFERENCE_BACKEND", "opencv_caffe"),
         GENDER_MODEL_PATH=resolve_path(os.getenv("GENDER_MODEL_PATH"), Path("ml") / "models" / "gender_net.caffemodel"),
         GENDER_PROTO_PATH=resolve_path(os.getenv("GENDER_PROTO_PATH"), Path("ml") / "models" / "gender_deploy.prototxt"),
+        FACE_DETECTOR_PATH=resolve_path(os.getenv("FACE_DETECTOR_PATH"), Path("ml") / "models" / "face_detection_yunet_2023mar.onnx"),
+        FACE_MARGIN=float(os.getenv("FACE_MARGIN", "0.15")),
+        MALE_THRESHOLD=float(os.getenv("MALE_THRESHOLD", "0.8")),
         AUTO_CREATE_SCHEMA=os.getenv("AUTO_CREATE_SCHEMA", "true").lower() == "true",
         DEMO_ACCOUNTS=os.getenv("DEMO_ACCOUNTS", "true").lower() == "true",
     )
