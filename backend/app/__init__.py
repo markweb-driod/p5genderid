@@ -81,6 +81,13 @@ def create_app(test_config=None):
     CORS(app, origins=allowed_origins)
     from .routes import api
     app.register_blueprint(api, url_prefix="/api")
+    @app.get("/")
+    @app.get("/api")
+    def index():
+        return jsonify(name="FaceClass API", status="ok", health="/api/health", ready="/api/ready", model="/api/model",
+                       message="This is the backend API. Open the web app to use FaceClass.")
+    @app.errorhandler(404)
+    def not_found(_): return jsonify(code="NOT_FOUND", message="This API route does not exist. All endpoints are under /api/."), 404
     @app.errorhandler(413)
     def too_large(_): return jsonify(code="IMAGE_TOO_LARGE", message="The image exceeds the configured upload limit."), 413
     @app.errorhandler(429)
